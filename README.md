@@ -1,11 +1,11 @@
 # pyieee1905
 IEEE1905 implementation using Python and Scapy
 
-# Installation
+## Installation
 
 Run `python3 setup.py install` to install `pyieee1905`.
 
-# Example
+## Example
 
 To generate the Topology Notification message and send it via the eth0 interface:
 
