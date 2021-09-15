@@ -755,3 +755,11 @@ class ErrorCode(IEEE1905_TLV):
     ]
 
 
+# Multi_AP Version TLV (0xB3)
+class MultiAPVersion(IEEE1905_TLV):
+    name = "Multi AP Version TLV"
+    fields_desc = [
+        XByteField("type", 0xB3),
+        XShortField("len", None),
+        XByteField("multi_ap_version", None),
+    ]
