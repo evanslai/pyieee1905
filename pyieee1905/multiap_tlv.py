@@ -766,3 +766,45 @@ class MultiAPVersion(IEEE1905_TLV):
         XShortField("len", None),
         XByteField("multi_ap_version", None),
     ]
+
+
+# Associated STA Extended Link Metrics TLV (0xC8)
+class AssocSTAExtendedLinkMetrics_BSSID(Packet):
+    name = "BSSID"
+    fields_desc = [
+        MACField("bssid", None),
+        XIntField("last_data_downlink_rate", None),
+        XIntField("last_data_uplink_rate", None),
+        XIntField("utilization_receive", None),
+        XIntField("utilization_transmit", None)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class AssociatedSTAExtendedLinkMetrics(IEEE1905_TLV):
+    name = "Associated STA Extended Link Metrics"
+    fields_desc = [
+        XByteField("type", 0xC8),
+        XShortField("len", None),
+        MACField("sta_mac", None),
+        FieldLenField("bssid_cnt", None, fmt='B', count_of="bssid_list"),
+        PacketListField("bssid_list", None, AssocSTAExtendedLinkMetrics_BSSID, count_from=lambda p:p.bssid_cnt)
+    ]
+
+
+# AP Extended Metrics (0xC7)
+# UC = Unicast, MC = Multicast, BC = Broadcast
+class APExtendedMetrics(IEEE1905_TLV):
+    name = "AP Extended Metrics"
+    fields_desc = [
+        XByteField("type", 0xC7),
+        XShortField("len", None),
+        MACField("bssid", None),
+        IntField("uc_bytes_sent", 0),
+        IntField("uc_bytes_rcvd", 0),
+        IntField("mc_bytes_sent", 0),
+        IntField("mc_bytes_rcvd", 0),
+        IntField("bc_bytes_sent", 0),
+        IntField("bc_bytes_rcvd", 0)
+    ]
