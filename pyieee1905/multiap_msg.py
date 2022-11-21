@@ -69,7 +69,8 @@ class MultiAP_Message(Packet):
         BitField("flag_relay_ind", 0, 1),
         BitField("flag_reserved", 0, 6)
     ]
-
+    def answers(resp, self):
+        return resp.msg_id == self.msg_id
 
 bind_layers(Ether, MultiAP_Message, type=0x893a)
 bind_layers(MultiAP_Message, IEEE1905_TLV, )
