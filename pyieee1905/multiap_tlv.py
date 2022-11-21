@@ -2,7 +2,7 @@ import struct
 from scapy.packet import Packet
 from scapy.fields import BitField, XByteField, XShortField, SignedByteField, MACField, \
         X3BytesField, IntField, XIntField, XLongField, ConditionalField, \
-        StrLenField, FieldLenField, FieldListField, PacketListField
+        StrLenField, FieldLenField, FieldListField, PacketListField, MultipleTypeField
 
 
 from pyieee1905.ieee1905_tlv import IEEE1905_TLV
@@ -552,10 +552,13 @@ class BeaconMetricsQuery(IEEE1905_TLV):
         FieldLenField("ssid_len", None, fmt='B', length_of="ssid"),
         StrLenField("ssid", None, length_from=lambda p:p.ssid_len),
 
-        ConditionalField(XByteField("chnl_report_cnt", 0),
-                         lambda p:p.chnl_num!=255),
-        ConditionalField(FieldLenField("chnl_report_cnt", None, fmt='B', count_of="chnl_report_list"),
-                         lambda p:p.chnl_num==255),
+        MultipleTypeField(
+            [
+                (XByteField("chnl_report_cnt", 0),
+                    lambda p:p.chnl_num!=255)
+            ],
+            FieldLenField("chnl_report_cnt", None, fmt='B', count_of="chnl_report_list")
+        ),
         ConditionalField(PacketListField("chnl_report_list", None, BeaconMetricsQuery_ChnlReport, count_from=lambda p:p.chnl_report_cnt),
                          lambda p:p.chnl_num==255),
 
