@@ -906,3 +906,42 @@ class CACCapabilities(IEEE1905_TLV):
         PacketListField("radio_list", None, CACCapabilities_Radio,
                 count_from=lambda p:p.radio_cnt)
     ]
+
+
+# Channel Scan Capabilities TLV (0xA5)
+class ChannelScanCapabilities_Class(Packet):
+    name = "Channel Scan Operating Class"
+    fields_desc = [
+        ByteField("operating_class", None),
+        FieldLenField("channels_len", None, fmt='B', count_of="channels"),
+        FieldListField("channels", None, ByteField("channel", None), count_from=lambda p:p.channels_len)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class ChannelScanCapabilities_Radio(Packet):
+    name = "Channel Scan Radio"
+    fields_desc = [
+        MACField("ruid", None),
+        BitField("on_boot_only", 0x00, 1),
+        BitField("scan_impact", 0x00, 2),
+        BitField("reserved", 0x00, 5),
+        IntField("min_scan_interval", 0),
+        FieldLenField("class_cnt", None, fmt='B', count_of="class_list"),
+        PacketListField("class_list", None, ChannelScanCapabilities_Class,
+                count_from=lambda p:p.class_cnt)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class ChannelScanCapabilities(IEEE1905_TLV):
+    name = "Channel Scan Capabilities TLV"
+    fields_desc = [
+        XByteField("type", 0xA5),
+        XShortField("len", None),
+        FieldLenField("radio_cnt", None, fmt='B', count_of="radio_list"),
+        PacketListField("radio_list", None, ChannelScanCapabilities_Radio,
+                count_from=lambda p:p.radio_cnt)
+    ]
