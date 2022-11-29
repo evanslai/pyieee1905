@@ -2,7 +2,8 @@ import struct
 from scapy.packet import Packet
 from scapy.fields import BitField, XByteField, XShortField, SignedByteField, MACField, \
         X3BytesField, IntField, XIntField, XLongField, ConditionalField, \
-        StrLenField, FieldLenField, FieldListField, PacketListField, MultipleTypeField
+        StrLenField, FieldLenField, FieldListField, PacketListField, MultipleTypeField, \
+        StrFixedLenField, ThreeBytesField, ByteField
 
 
 from pyieee1905.ieee1905_tlv import IEEE1905_TLV
@@ -856,4 +857,52 @@ class APWiFi6Capabilities(IEEE1905_TLV):
         FieldLenField("role_cnt", None, fmt='B', count_of="role_list"),
         PacketListField("role_list", None, APWiFi6Capabilities_Role,
                         count_from=lambda p:p.role_cnt)
+    ]
+
+# CAC Capabilities TLV (0xB2)
+class CACCapabilities_Class(Packet):
+    name = "CAC Operating Class"
+    fields_desc = [
+        ByteField("operating_class", None),
+        FieldLenField("channels_len", None, fmt='B', count_of="channels"),
+        FieldListField("channels", None, ByteField("channel", None), count_from=lambda p:p.channels_len)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class CACCapabilities_Type(Packet):
+    name = "CAC Type"
+    fields_desc = [
+        XByteField("method", None),
+        ThreeBytesField("duration", None),
+        FieldLenField("class_cnt", None, fmt='B', count_of="class_list"),
+        PacketListField("class_list", None, CACCapabilities_Class,
+                count_from=lambda p:p.class_cnt)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class CACCapabilities_Radio(Packet):
+    name = "CAC Radio"
+    fields_desc = [
+        MACField("ruid", None),
+        FieldLenField("type_cnt", None, fmt='B', count_of="type_list"),
+        PacketListField("type_list", None, CACCapabilities_Type,
+                count_from=lambda p:p.type_cnt)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class CACCapabilities(IEEE1905_TLV):
+    name = "CAC Capabilities TLV"
+    fields_desc = [
+        XByteField("type", 0xB2),
+        XShortField("len", None),
+        StrFixedLenField("country_code", None, length=2),
+        FieldLenField("radio_cnt", None, fmt='B', count_of="radio_list"),
+        PacketListField("radio_list", None, CACCapabilities_Radio,
+                count_from=lambda p:p.radio_cnt)
     ]
