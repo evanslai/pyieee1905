@@ -808,3 +808,52 @@ class APExtendedMetrics(IEEE1905_TLV):
         IntField("bc_bytes_sent", 0),
         IntField("bc_bytes_rcvd", 0)
     ]
+
+
+# AP Wi-Fi 6 Capabilities TLV (0xAA)
+class APWiFi6Capabilities_Role(Packet):
+    name = "Role"
+    fields_desc = [
+        BitField("agent_role", None, 2),
+        BitField("he_160", None, 1),
+        BitField("he_80plus80", None, 1),
+        BitField("reserved", 0, 4),
+        IntField("mcs_nss", None),
+        ConditionalField(IntField("he_mcs_nss_160", None), lambda pkt:pkt.he_160==1),
+        ConditionalField(IntField("he_mcs_nss_80plus80", None), lambda pkt:pkt.he_80plus80==1),
+        BitField("su_beamformer", None, 1),
+        BitField("su_beamformee", None, 1),
+        BitField("mu_beamformer_staus", None, 1),
+        BitField("beamformee_sts_less_80", None, 1),
+        BitField("beamformee_sts_greater_80", None, 1),
+        BitField("ul_mu_mimo", None, 1),
+        BitField("ul_ofdma", None, 1),
+        BitField("dl_ofdma", None, 1),
+        BitField("max_dl_mu_mimo_tx", None, 4),
+        BitField("max_ul_mu_mimo_rx", None, 4),
+        XByteField("max_dl_ofdma_tx", 0),
+        XByteField("max_ul_ofdma_rx", 0),
+        BitField("rts", None, 1),
+        BitField("mu_rts", None, 1),
+        BitField("multi_bssid", None, 1),
+        BitField("mu_edca", None, 1),
+        BitField("twt_requester", None, 1),
+        BitField("twt_responder", None, 1),
+        BitField("spatial_reuse", None, 1),
+        BitField("anticipated_channel_usage", None, 1),
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+
+class APWiFi6Capabilities(IEEE1905_TLV):
+    name = "AP Wi-Fi 6 Capabilities TLV"
+    fields_desc = [
+        XByteField("type", 0xAA),
+        XShortField("len", None),
+        MACField("radio_id", None),
+        FieldLenField("role_cnt", None, fmt='B', count_of="role_list"),
+        PacketListField("role_list", None, APWiFi6Capabilities_Role,
+                        count_from=lambda p:p.role_cnt)
+    ]
