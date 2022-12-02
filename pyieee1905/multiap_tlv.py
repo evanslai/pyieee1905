@@ -2,7 +2,8 @@ import struct
 from scapy.packet import Packet
 from scapy.fields import BitField, XByteField, XShortField, SignedByteField, MACField, \
         X3BytesField, IntField, XIntField, XLongField, ConditionalField, \
-        StrLenField, FieldLenField, FieldListField, PacketListField
+        StrLenField, FieldLenField, FieldListField, PacketListField, MultipleTypeField, \
+        StrFixedLenField, ThreeBytesField, ByteField
 
 
 from pyieee1905.ieee1905_tlv import IEEE1905_TLV
@@ -552,10 +553,13 @@ class BeaconMetricsQuery(IEEE1905_TLV):
         FieldLenField("ssid_len", None, fmt='B', length_of="ssid"),
         StrLenField("ssid", None, length_from=lambda p:p.ssid_len),
 
-        ConditionalField(XByteField("chnl_report_cnt", 0),
-                         lambda p:p.chnl_num!=255),
-        ConditionalField(FieldLenField("chnl_report_cnt", None, fmt='B', count_of="chnl_report_list"),
-                         lambda p:p.chnl_num==255),
+        MultipleTypeField(
+            [
+                (XByteField("chnl_report_cnt", 0),
+                    lambda p:p.chnl_num!=255)
+            ],
+            FieldLenField("chnl_report_cnt", None, fmt='B', count_of="chnl_report_list")
+        ),
         ConditionalField(PacketListField("chnl_report_list", None, BeaconMetricsQuery_ChnlReport, count_from=lambda p:p.chnl_report_cnt),
                          lambda p:p.chnl_num==255),
 
@@ -762,4 +766,182 @@ class MultiAPVersion(IEEE1905_TLV):
         XByteField("type", 0xB3),
         XShortField("len", None),
         XByteField("multi_ap_version", None),
+    ]
+
+
+# Associated STA Extended Link Metrics TLV (0xC8)
+class AssocSTAExtendedLinkMetrics_BSSID(Packet):
+    name = "BSSID"
+    fields_desc = [
+        MACField("bssid", None),
+        XIntField("last_data_downlink_rate", None),
+        XIntField("last_data_uplink_rate", None),
+        XIntField("utilization_receive", None),
+        XIntField("utilization_transmit", None)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class AssociatedSTAExtendedLinkMetrics(IEEE1905_TLV):
+    name = "Associated STA Extended Link Metrics"
+    fields_desc = [
+        XByteField("type", 0xC8),
+        XShortField("len", None),
+        MACField("sta_mac", None),
+        FieldLenField("bssid_cnt", None, fmt='B', count_of="bssid_list"),
+        PacketListField("bssid_list", None, AssocSTAExtendedLinkMetrics_BSSID, count_from=lambda p:p.bssid_cnt)
+    ]
+
+
+# AP Extended Metrics (0xC7)
+# UC = Unicast, MC = Multicast, BC = Broadcast
+class APExtendedMetrics(IEEE1905_TLV):
+    name = "AP Extended Metrics"
+    fields_desc = [
+        XByteField("type", 0xC7),
+        XShortField("len", None),
+        MACField("bssid", None),
+        IntField("uc_bytes_sent", 0),
+        IntField("uc_bytes_rcvd", 0),
+        IntField("mc_bytes_sent", 0),
+        IntField("mc_bytes_rcvd", 0),
+        IntField("bc_bytes_sent", 0),
+        IntField("bc_bytes_rcvd", 0)
+    ]
+
+
+# AP Wi-Fi 6 Capabilities TLV (0xAA)
+class APWiFi6Capabilities_Role(Packet):
+    name = "Role"
+    fields_desc = [
+        BitField("agent_role", None, 2),
+        BitField("he_160", None, 1),
+        BitField("he_80plus80", None, 1),
+        BitField("reserved", 0, 4),
+        IntField("mcs_nss", None),
+        ConditionalField(IntField("he_mcs_nss_160", None), lambda pkt:pkt.he_160==1),
+        ConditionalField(IntField("he_mcs_nss_80plus80", None), lambda pkt:pkt.he_80plus80==1),
+        BitField("su_beamformer", None, 1),
+        BitField("su_beamformee", None, 1),
+        BitField("mu_beamformer_staus", None, 1),
+        BitField("beamformee_sts_less_80", None, 1),
+        BitField("beamformee_sts_greater_80", None, 1),
+        BitField("ul_mu_mimo", None, 1),
+        BitField("ul_ofdma", None, 1),
+        BitField("dl_ofdma", None, 1),
+        BitField("max_dl_mu_mimo_tx", None, 4),
+        BitField("max_ul_mu_mimo_rx", None, 4),
+        XByteField("max_dl_ofdma_tx", 0),
+        XByteField("max_ul_ofdma_rx", 0),
+        BitField("rts", None, 1),
+        BitField("mu_rts", None, 1),
+        BitField("multi_bssid", None, 1),
+        BitField("mu_edca", None, 1),
+        BitField("twt_requester", None, 1),
+        BitField("twt_responder", None, 1),
+        BitField("spatial_reuse", None, 1),
+        BitField("anticipated_channel_usage", None, 1),
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+
+class APWiFi6Capabilities(IEEE1905_TLV):
+    name = "AP Wi-Fi 6 Capabilities TLV"
+    fields_desc = [
+        XByteField("type", 0xAA),
+        XShortField("len", None),
+        MACField("radio_id", None),
+        FieldLenField("role_cnt", None, fmt='B', count_of="role_list"),
+        PacketListField("role_list", None, APWiFi6Capabilities_Role,
+                        count_from=lambda p:p.role_cnt)
+    ]
+
+# CAC Capabilities TLV (0xB2)
+class CACCapabilities_Class(Packet):
+    name = "CAC Operating Class"
+    fields_desc = [
+        ByteField("operating_class", None),
+        FieldLenField("channels_len", None, fmt='B', count_of="channels"),
+        FieldListField("channels", None, ByteField("channel", None), count_from=lambda p:p.channels_len)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class CACCapabilities_Type(Packet):
+    name = "CAC Type"
+    fields_desc = [
+        XByteField("method", None),
+        ThreeBytesField("duration", None),
+        FieldLenField("class_cnt", None, fmt='B', count_of="class_list"),
+        PacketListField("class_list", None, CACCapabilities_Class,
+                count_from=lambda p:p.class_cnt)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class CACCapabilities_Radio(Packet):
+    name = "CAC Radio"
+    fields_desc = [
+        MACField("ruid", None),
+        FieldLenField("type_cnt", None, fmt='B', count_of="type_list"),
+        PacketListField("type_list", None, CACCapabilities_Type,
+                count_from=lambda p:p.type_cnt)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class CACCapabilities(IEEE1905_TLV):
+    name = "CAC Capabilities TLV"
+    fields_desc = [
+        XByteField("type", 0xB2),
+        XShortField("len", None),
+        StrFixedLenField("country_code", None, length=2),
+        FieldLenField("radio_cnt", None, fmt='B', count_of="radio_list"),
+        PacketListField("radio_list", None, CACCapabilities_Radio,
+                count_from=lambda p:p.radio_cnt)
+    ]
+
+
+# Channel Scan Capabilities TLV (0xA5)
+class ChannelScanCapabilities_Class(Packet):
+    name = "Channel Scan Operating Class"
+    fields_desc = [
+        ByteField("operating_class", None),
+        FieldLenField("channels_len", None, fmt='B', count_of="channels"),
+        FieldListField("channels", None, ByteField("channel", None), count_from=lambda p:p.channels_len)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class ChannelScanCapabilities_Radio(Packet):
+    name = "Channel Scan Radio"
+    fields_desc = [
+        MACField("ruid", None),
+        BitField("on_boot_only", 0x00, 1),
+        BitField("scan_impact", 0x00, 2),
+        BitField("reserved", 0x00, 5),
+        IntField("min_scan_interval", 0),
+        FieldLenField("class_cnt", None, fmt='B', count_of="class_list"),
+        PacketListField("class_list", None, ChannelScanCapabilities_Class,
+                count_from=lambda p:p.class_cnt)
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+class ChannelScanCapabilities(IEEE1905_TLV):
+    name = "Channel Scan Capabilities TLV"
+    fields_desc = [
+        XByteField("type", 0xA5),
+        XShortField("len", None),
+        FieldLenField("radio_cnt", None, fmt='B', count_of="radio_list"),
+        PacketListField("radio_list", None, ChannelScanCapabilities_Radio,
+                count_from=lambda p:p.radio_cnt)
     ]
