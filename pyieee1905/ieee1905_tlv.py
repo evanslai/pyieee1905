@@ -246,7 +246,6 @@ class VendorSpecific(IEEE1905_TLV):
         XByteField("type", 0x0B),
         XShortField("len", None),
         X3BytesField("vendor_oui", None),
-        FieldLenField("vendor_data_len", None, fmt='B', count_of="vendor_data"),
         FieldListField("vendor_data", None, XByteField("byte", None),
                        count_from=lambda p:p.vendor_data_len)
     ]
