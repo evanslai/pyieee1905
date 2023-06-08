@@ -310,7 +310,6 @@ class WSC(IEEE1905_TLV):
     fields_desc = [
         XByteField("type", 0x11),
         XShortField("len", None),
-        FieldLenField("wsc_frame_size", None, count_of="wsc_frame"),
         FieldListField("wsc_frame", None, XByteField("byte", None),
                        count_from=lambda p:p.wsc_frame_size)
     ]
