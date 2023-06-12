@@ -311,7 +311,7 @@ class WSC(IEEE1905_TLV):
         XByteField("type", 0x11),
         XShortField("len", None),
         FieldListField("wsc_frame", None, XByteField("byte", None),
-                       count_from=lambda p:p.wsc_frame_size)
+                       length_from=lambda p:len(p.wsc_frame))
     ]
 
 
