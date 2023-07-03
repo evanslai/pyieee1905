@@ -945,3 +945,17 @@ class ChannelScanCapabilities(IEEE1905_TLV):
         PacketListField("radio_list", None, ChannelScanCapabilities_Radio,
                 count_from=lambda p:p.radio_cnt)
     ]
+
+# Unsuccessful Association Policy TLV (0xC4)
+class UnsuccessfulAssociationPolicy(IEEE1905_TLV):
+    name = "Unsuccessful Association Policy TLV"
+    fields_desc = [
+        XByteField("type", 0xC4),
+        XShortField("len", None),
+        BitField("report_unsuccessful_associations_flag", 0, 1),
+        BitField("reserved", 0, 7),
+        IntField("maximum_reporting_rate", 0)
+    ]
+
+    def extract_padding(self, s):
+        return "", s

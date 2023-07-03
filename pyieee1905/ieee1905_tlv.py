@@ -246,7 +246,6 @@ class VendorSpecific(IEEE1905_TLV):
         XByteField("type", 0x0B),
         XShortField("len", None),
         X3BytesField("vendor_oui", None),
-        FieldLenField("vendor_data_len", None, fmt='B', count_of="vendor_data"),
         FieldListField("vendor_data", None, XByteField("byte", None),
                        count_from=lambda p:p.vendor_data_len)
     ]
@@ -311,9 +310,8 @@ class WSC(IEEE1905_TLV):
     fields_desc = [
         XByteField("type", 0x11),
         XShortField("len", None),
-        FieldLenField("wsc_frame_size", None, count_of="wsc_frame"),
         FieldListField("wsc_frame", None, XByteField("byte", None),
-                       count_from=lambda p:p.wsc_frame_size)
+                       length_from=lambda p:len(p.wsc_frame))
     ]
 
 
